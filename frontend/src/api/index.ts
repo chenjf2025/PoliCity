@@ -2,10 +2,7 @@ import axios from 'axios'
 
 const apiClient = axios.create({
   baseURL: '/api/v1',
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  timeout: 30000
 })
 
 // 请求拦截器
@@ -52,11 +49,9 @@ export const indicatorAPI = {
 
 // 数据采集API
 export const dataAPI = {
-  importExcel: (file: FormData, reportYear: number) =>
-    apiClient.post('/data/raw/import', file, {
-      params: { report_year: reportYear }
-      // 注意：不要手动设置 Content-Type，axios 会自动设置 multipart/form-data
-    }),
+  importExcel: (file: FormData, reportYear: number) => {
+    return apiClient.post(`/data/raw/import?report_year=${reportYear}`, file)
+  },
 
   createRaw: (data: any) =>
     apiClient.post('/data/raw', data),

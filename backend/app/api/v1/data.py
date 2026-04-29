@@ -2,7 +2,7 @@
 数据采集API
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
@@ -108,9 +108,13 @@ def create_raw_data(
     )
 
 
+class ImportFormData(BaseModel):
+    report_year: int = 2024
+
+
 @router.post("/raw/import")
 async def import_raw_data(
-    file: UploadFile = File(...),
+    request: Request,
     report_year: int = 2024,
     db: Session = Depends(get_db)
 ):
@@ -121,12 +125,26 @@ async def import_raw_data(
     - 第二列: region_name (行政区划名称)
     - 第三列开始: 指标编码 (E01, C01, ...)
     """
-    # 读取文件
-    filename = file.filename.lower()
+    # 获取上传的文件
+    form = await request.form()
+    file = form.get("file")
+
+    if not file:
+        raise HTTPException(status_code=400, detail="没有上传文件")
+
+    # 读取文件内容
+    try:
+        contents = await file.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"读取文件失败: {str(e)}")
+
+    # 解析文件
+    import io
+    filename = file.filename.lower() if file.filename else ""
     if filename.endswith('.csv'):
-        df = pd.read_csv(file.file)
+        df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
     elif filename.endswith(('.xlsx', '.xls')):
-        df = pd.read_excel(file.file)
+        df = pd.read_excel(io.BytesIO(contents))
     else:
         raise HTTPException(status_code=400, detail="仅支持Excel或CSV文件")
 
