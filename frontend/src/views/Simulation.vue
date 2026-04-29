@@ -359,6 +359,10 @@ const runAgentAnalysis = async () => {
                 receivedData = true
               } else if (parsed.type === 'done') {
                 isStreaming.value = false
+                // 将流式内容设置为agentResult
+                agentResult.value = {
+                  llm_analysis: streamingContent.value
+                }
                 loadHistory()
                 ElMessage.success('Agent分析完成')
               }
