@@ -140,7 +140,21 @@ const importData = async () => {
     importFile.value = null
   } catch (error: any) {
     console.error('导入失败:', error)
-    const errorMsg = error?.response?.data?.detail || error?.message || '导入失败'
+    let errorMsg = '导入失败'
+    if (error?.response?.data) {
+      const data = error.response.data
+      if (typeof data === 'string') {
+        errorMsg = data
+      } else if (data.detail) {
+        errorMsg = data.detail
+      } else if (data.message) {
+        errorMsg = data.message
+      } else {
+        errorMsg = JSON.stringify(data)
+      }
+    } else if (error?.message) {
+      errorMsg = error.message
+    }
     ElMessage.error(`导入失败: ${errorMsg}`)
   } finally {
     importing.value = false
