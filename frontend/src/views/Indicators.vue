@@ -76,7 +76,7 @@
             ref="uploadRef"
             :auto-upload="false"
             :limit="1"
-            accept=".xlsx,.xls"
+            accept=".xlsx,.xls,.csv"
             :on-change="handleFileChange"
           >
             <el-button>选择文件</el-button>

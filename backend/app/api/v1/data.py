@@ -121,11 +121,14 @@ async def import_raw_data(
     - 第二列: region_name (行政区划名称)
     - 第三列开始: 指标编码 (E01, C01, ...)
     """
-    if not file.filename.endswith(('.xlsx', '.xls')):
-        raise HTTPException(status_code=400, detail="仅支持Excel文件")
-
-    # 读取Excel
-    df = pd.read_excel(file.file)
+    # 读取文件
+    filename = file.filename.lower()
+    if filename.endswith('.csv'):
+        df = pd.read_csv(file.file)
+    elif filename.endswith(('.xlsx', '.xls')):
+        df = pd.read_excel(file.file)
+    else:
+        raise HTTPException(status_code=400, detail="仅支持Excel或CSV文件")
 
     # 验证列
     required_cols = ['region_code', 'region_name']
