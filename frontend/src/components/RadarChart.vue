@@ -13,16 +13,23 @@ interface Dimension {
   weight: number
 }
 
+interface BenchmarkCityData {
+  dimensions: Dimension[]
+  city_name: string
+  city_code: string
+}
+
 interface Props {
   dimensions: Dimension[]
-  comparisonData?: Dimension[]
-  comparisonName?: string
+  comparisonData?: BenchmarkCityData[]
 }
 
 const props = defineProps<Props>()
 
 const chartRef = ref<HTMLElement>()
 let chart: echarts.ECharts | null = null
+
+const COLORS = ['#fa8c16', '#52c41a', '#eb2f96', '#722ed1', '#13c2c2', '#faad14']
 
 const initChart = () => {
   if (!chartRef.value) return
@@ -36,7 +43,7 @@ const initChart = () => {
 
   const data = props.dimensions.map(d => d.score || 0)
 
-  const series = [
+  const series: any[] = [
     {
       value: data,
       name: '当前城市',
@@ -48,14 +55,16 @@ const initChart = () => {
   ]
 
   if (props.comparisonData && props.comparisonData.length > 0) {
-    series.push({
-      value: props.comparisonData.map(d => d.score || 0),
-      name: props.comparisonName || '对标城市',
-      type: 'radar',
-      lineStyle: { width: 2, type: 'dashed' },
-      areaStyle: { opacity: 0.1 },
-      itemStyle: { color: '#fa8c16' }
-    } as any)
+    props.comparisonData.forEach((city, idx) => {
+      series.push({
+        value: city.dimensions.map(d => d.score || 0),
+        name: city.city_name,
+        type: 'radar',
+        lineStyle: { width: 2, type: idx % 2 === 0 ? 'dashed' : 'dotted' },
+        areaStyle: { opacity: 0.1 },
+        itemStyle: { color: COLORS[idx % COLORS.length] }
+      })
+    })
   }
 
   const option = {
@@ -69,7 +78,7 @@ const initChart = () => {
       formatter: (params: any) => {
         const idx = params.dataIndex
         const dim = props.dimensions[idx]
-        return `${dim.name}<br/>得分: ${params.value} (权重: ${(dim.weight * 100).toFixed(0)}%)`
+        return `${params.marker} ${params.name}<br/>${dim.name}: ${params.value}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`
       }
     },
     legend: {
@@ -99,7 +108,7 @@ onBeforeUnmount(() => {
   chart?.dispose()
 })
 
-watch(() => props.dimensions, () => {
+watch(() => [props.dimensions, props.comparisonData], () => {
   initChart()
 }, { deep: true })
 </script>

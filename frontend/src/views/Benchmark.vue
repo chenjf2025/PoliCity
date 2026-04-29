@@ -42,8 +42,7 @@
               <RadarChart
                 v-if="compareResult.self_analysis?.radar"
                 :dimensions="compareResult.self_analysis.radar.dimensions"
-                :comparison-data="compareResult.benchmark_cities?.[0]?.dimensions"
-                :comparison-name="compareResult.benchmark_cities?.[0]?.city_name"
+                :comparison-data="compareResult.benchmark_cities"
               />
             </el-card>
           </el-col>

@@ -118,15 +118,29 @@ def compare_with_benchmark(
     )
 
     # 获取对标城市的雷达图数据
+    from app.models.indicator import RawData
+
     benchmark_radars = []
     for city_code in request.benchmark_city_codes:
+        # 先从BenchmarkCity表查询
         city = db.query(BenchmarkCity).filter(
             BenchmarkCity.city_code == city_code
         ).first()
 
+        city_name = None
         if city:
+            city_name = city.city_name
+        else:
+            # 如果BenchmarkCity没有，尝试从RawData获取城市名称
+            raw_city = db.query(RawData.region_name).filter(
+                RawData.region_code == city_code
+            ).first()
+            if raw_city:
+                city_name = raw_city.region_name
+
+        if city_name:
             radar = evaluator.get_radar_data(city_code, request.report_year)
-            radar["city_name"] = city.city_name
+            radar["city_name"] = city_name
             radar["city_code"] = city_code
             benchmark_radars.append(radar)
 
