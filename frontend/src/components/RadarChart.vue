@@ -34,6 +34,9 @@ const COLORS = ['#fa8c16', '#52c41a', '#eb2f96', '#722ed1', '#13c2c2', '#faad14'
 const initChart = () => {
   if (!chartRef.value) return
 
+  if (chart) {
+    chart.dispose()
+  }
   chart = echarts.init(chartRef.value)
 
   const indicator = props.dimensions.map(d => ({
