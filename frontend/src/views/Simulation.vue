@@ -316,4 +316,12 @@ onMounted(() => {
   border: 1px solid #dfe2e5;
   padding: 6px 12px;
 }
+
+:deep(.el-select) {
+  width: 150px;
+}
+
+:deep(.el-select .el-input__inner) {
+  width: 150px;
+}
 </style>

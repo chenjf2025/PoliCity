@@ -130,3 +130,17 @@ onMounted(() => {
   loadData()
 })
 </script>
+
+<style scoped>
+.dashboard {
+  padding: 20px;
+}
+
+:deep(.el-select) {
+  width: 150px;
+}
+
+:deep(.el-select .el-input__inner) {
+  width: 150px;
+}
+</style>
