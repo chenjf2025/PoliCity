@@ -111,7 +111,7 @@ onBeforeUnmount(() => {
   chart?.dispose()
 })
 
-watch(() => [props.dimensions, props.comparisonData], () => {
+watch([() => props.dimensions, () => props.comparisonData], () => {
   initChart()
 }, { deep: true })
 </script>

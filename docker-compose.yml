@@ -44,6 +44,8 @@ services:
       - cgdss-network
     environment:
       TZ: Asia/Shanghai
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
 
 networks:
   cgdss-network:
