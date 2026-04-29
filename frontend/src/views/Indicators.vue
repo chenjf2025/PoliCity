@@ -121,6 +121,7 @@ const loadIndicators = async () => {
 }
 
 const handleFileChange = (file: UploadFile) => {
+  console.log('File selected:', file)
   importFile.value = file
 }
 
@@ -133,11 +134,17 @@ const importData = async () => {
   importing.value = true
   try {
     const formData = new FormData()
-    formData.append('file', importFile.value.raw!)
+    // el-upload 的 file.raw 是原始文件对象
+    const fileToUpload = importFile.value.raw || importFile.value
+    formData.append('file', fileToUpload)
+
+    console.log('Uploading file:', importFile.value.name, fileToUpload)
+
     const response = await dataAPI.importExcel(formData, importYear.value)
     ElMessage.success(`导入成功！共导入 ${response.imported_count} 条数据`)
     showImportDialog.value = false
     importFile.value = null
+    uploadRef.value?.clearFiles()
   } catch (error: any) {
     console.error('导入失败:', error)
     let errorMsg = '导入失败'

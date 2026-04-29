@@ -78,7 +78,7 @@
           <el-alert
             v-for="(item, idx) in shortboards.slice(0, 5)"
             :key="idx"
-            :title="`${item.indicator_name}: ${item.score || item.gap}分`"
+            :title="`${item.indicator_name}: ${(item.score ?? item.gap ?? 0).toFixed(1)}分`"
             type="warning"
             :closable="false"
             style="margin-bottom: 8px;"
