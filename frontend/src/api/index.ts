@@ -54,8 +54,8 @@ export const indicatorAPI = {
 export const dataAPI = {
   importExcel: (file: FormData, reportYear: number) =>
     apiClient.post('/data/raw/import', file, {
-      params: { report_year: reportYear },
-      headers: { 'Content-Type': 'multipart/form-data' }
+      params: { report_year: reportYear }
+      // 注意：不要手动设置 Content-Type，axios 会自动设置 multipart/form-data
     }),
 
   createRaw: (data: any) =>

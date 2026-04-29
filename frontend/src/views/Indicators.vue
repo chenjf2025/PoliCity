@@ -134,11 +134,14 @@ const importData = async () => {
   try {
     const formData = new FormData()
     formData.append('file', importFile.value.raw!)
-    await dataAPI.importExcel(formData, importYear.value)
-    ElMessage.success('导入成功')
+    const response = await dataAPI.importExcel(formData, importYear.value)
+    ElMessage.success(`导入成功！共导入 ${response.imported_count} 条数据`)
     showImportDialog.value = false
-  } catch (error) {
-    ElMessage.error('导入失败')
+    importFile.value = null
+  } catch (error: any) {
+    console.error('导入失败:', error)
+    const errorMsg = error?.response?.data?.detail || error?.message || '导入失败'
+    ElMessage.error(`导入失败: ${errorMsg}`)
   } finally {
     importing.value = false
   }
