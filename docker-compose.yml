@@ -1,0 +1,49 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cgdss-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - cgdss-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cgdss-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://nexteacher:nexteacher8018@192.168.71.127:5433/cgdss
+      REDIS_URL: redis://192.168.71.127:6380/0
+      DIFY_API_URL: http://192.168.71.101:8080/v1
+      DIFY_API_KEY: app-drScqCHbwG0oUmh2TYqr6lnT
+      DIFY_APP_ID: 46f69385-1556-4107-80f7-e0b0424a63cc
+      DIFY_DATASET_ID: f14f5c44-d420-442e-adaa-bf8c8887e75b
+    networks:
+      - cgdss-network
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cgdss-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    networks:
+      - cgdss-network
+
+networks:
+  cgdss-network:
+    driver: bridge
