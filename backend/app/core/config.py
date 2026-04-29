@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
 
 
 class Settings(BaseSettings):
@@ -9,24 +10,24 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database
-    DATABASE_URL: str = "postgresql://cgdss:cgdss123@postgres:5432/cgdss"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://cgdss:cgdss123@postgres:5432/cgdss")
 
     # Redis
-    REDIS_URL: str = "redis://redis:6379/0"
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
     # Dify API
-    DIFY_API_URL: str = "http://192.168.71.101:8080/v1"
-    DIFY_API_KEY: str = "app-drScqCHbwG0oUmh2TYqr6lnT"
-    DIFY_APP_ID: str = "46f69385-1556-4107-80f7-e0b0424a63cc"
-    DIFY_DATASET_ID: str = "f14f5c44-d420-442e-adaa-bf8c8887e75b"
+    DIFY_API_URL: str = os.getenv("DIFY_API_URL", "http://192.168.71.101:8080/v1")
+    DIFY_API_KEY: str = os.getenv("DIFY_API_KEY", "")
+    DIFY_APP_ID: str = os.getenv("DIFY_APP_ID", "")
+    DIFY_DATASET_ID: str = os.getenv("DIFY_DATASET_ID", "")
 
     # DeepSeek LLM API
-    DEEPSEEK_API_URL: str = "https://api.deepseek.com/v1/chat/completions"
-    DEEPSEEK_API_KEY: str = "sk-3edb33a0774d45f789feaa2bd18acb56"
-    DEEPSEEK_MODEL: str = "deepseek-chat"
+    DEEPSEEK_API_URL: str = os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
+    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
+    DEEPSEEK_MODEL: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
     # Security
-    SECRET_KEY: str = "cgdss-secret-key-change-in-production"
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "cgdss-secret-key-change-in-production")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
