@@ -2,7 +2,7 @@
 LLM服务 - 集成DeepSeek云端大模型
 """
 import httpx
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Generator
 from app.core.config import settings
 
 
@@ -67,6 +67,70 @@ class LLMService:
             return f"**API调用错误**: {e.response.status_code}\n\n请检查API Key是否正确配置。"
         except Exception as e:
             return f"**服务错误**: {str(e)}\n\n请稍后重试。"
+
+    def chat_stream(
+        self,
+        messages: list,
+        system_prompt: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2000
+    ) -> Generator[str, None, None]:
+        """
+        调用DeepSeek API进行流式对话
+
+        Args:
+            messages: 对话消息列表 [{"role": "user", "content": "..."}]
+            system_prompt: 系统提示词
+            temperature: 温度参数
+            max_tokens: 最大token数
+
+        Yields:
+            流式返回的文本片段
+        """
+        full_messages = []
+        if system_prompt:
+            full_messages.append({
+                "role": "system",
+                "content": system_prompt
+            })
+        full_messages.extend(messages)
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": self.model,
+            "messages": full_messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True
+        }
+
+        try:
+            client = httpx.Client(timeout=120.0)
+            try:
+                with client.stream("POST", self.api_url, json=payload, headers=headers) as response:
+                    response.raise_for_status()
+                    for line in response.iter_lines():
+                        if line.startswith("data: "):
+                            data = line[6:]
+                            if data == "[DONE]":
+                                break
+                            import json as json_lib
+                            try:
+                                chunk = json_lib.loads(data)
+                                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    yield content
+                            except:
+                                continue
+            finally:
+                client.close()
+        except Exception as e:
+            yield f"**服务错误**: {str(e)}\n\n请稍后重试。"
 
 
 class AgentAnalysisPrompter:

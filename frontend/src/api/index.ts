@@ -108,6 +108,23 @@ export const simulationAPI = {
     policy_changes: Array<{ indicator_code: string; change_percent: number }>
   }) => apiClient.post('/simulation/agent-analyze', params),
 
+  agentAnalyzeStream: (params: {
+    region_code: string
+    region_name: string
+    report_year: number
+    policy_changes: Array<{ indicator_code: string; change_percent: number }>
+  }) => {
+    const searchParams = new URLSearchParams({
+      query: JSON.stringify(params),
+      user_id: 'anonymous'
+    })
+    return fetch(`/api/v1/simulation/agent-analyze-stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    })
+  },
+
   getFullAnalysis: (regionCode: string, reportYear: number) =>
     apiClient.get('/simulation/agent/full-analysis', { params: { region_code: regionCode, report_year: reportYear } })
 }

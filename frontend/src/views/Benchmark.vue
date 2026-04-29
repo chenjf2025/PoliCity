@@ -7,7 +7,7 @@
       <el-form :inline="true" style="margin-bottom: 20px;">
         <el-form-item label="区域">
           <el-select v-model="regionCode">
-            <el-option label="默认城市" value="default" />
+            <el-option v-for="city in availableCities" :key="city.city_code" :label="city.city_name" :value="city.city_code" />
           </el-select>
         </el-form-item>
         <el-form-item label="年份">
@@ -120,9 +120,10 @@ const runCompare = async () => {
   }
 
   try {
+    const selfCity = availableCities.value.find(c => c.city_code === regionCode.value)
     compareResult.value = await benchmarkAPI.compare({
       region_code: regionCode.value,
-      region_name: '默认城市',
+      region_name: selfCity?.city_name || regionCode.value,
       benchmark_city_codes: selectedCities.value,
       report_year: reportYear.value
     })

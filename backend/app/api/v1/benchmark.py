@@ -36,27 +36,47 @@ def list_benchmark_cities(
     city_level: Optional[str] = Query(None, description="城市级别筛选"),
     db: Session = Depends(get_db)
 ):
-    """获取对标城市列表"""
-    query = db.query(BenchmarkCity).filter(BenchmarkCity.status == 1)
+    """获取对标城市列表（同时从BenchmarkCity表和已导入数据的区域获取）"""
+    from app.models.indicator import RawData
 
+    # 从 BenchmarkCity 表获取城市
+    query = db.query(BenchmarkCity).filter(BenchmarkCity.status == 1)
     if city_level:
         query = query.filter(BenchmarkCity.city_level == city_level)
+    benchmark_cities = query.all()
 
-    cities = query.all()
+    # 从 RawData 表获取已导入的区域
+    raw_regions = db.query(
+        RawData.region_code,
+        RawData.region_name
+    ).distinct().all()
 
+    # 合并去重
+    city_map = {}
+    for c in benchmark_cities:
+        city_map[c.city_code] = {
+            "id": str(c.id),
+            "city_code": c.city_code,
+            "city_name": c.city_name,
+            "province": c.province,
+            "city_level": c.city_level,
+            "description": c.description
+        }
+    for region_code, region_name in raw_regions:
+        if region_code not in city_map:
+            city_map[region_code] = {
+                "id": region_code,
+                "city_code": region_code,
+                "city_name": region_name,
+                "province": None,
+                "city_level": None,
+                "description": "已导入数据的区域"
+            }
+
+    cities = list(city_map.values())
     return {
         "count": len(cities),
-        "cities": [
-            {
-                "id": str(c.id),
-                "city_code": c.city_code,
-                "city_name": c.city_name,
-                "province": c.province,
-                "city_level": c.city_level,
-                "description": c.description
-            }
-            for c in cities
-        ]
+        "cities": cities
     }
 
 

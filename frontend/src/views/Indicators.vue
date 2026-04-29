@@ -152,8 +152,11 @@ const importData = async () => {
       const data = error.response.data
       if (typeof data === 'string') {
         errorMsg = data
+      } else if (Array.isArray(data.detail)) {
+        // FastAPI 验证错误数组
+        errorMsg = data.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ')
       } else if (data.detail) {
-        errorMsg = data.detail
+        errorMsg = String(data.detail)
       } else if (data.message) {
         errorMsg = data.message
       } else {

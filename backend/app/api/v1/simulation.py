@@ -109,6 +109,7 @@ def get_simulation_detail(
     return {
         "id": str(log.id),
         "region_code": log.region_code,
+        "region_name": log.region_name,
         "simulation_name": log.simulation_name,
         "params": log.params,
         "original_total_score": log.original_total_score,
@@ -116,7 +117,8 @@ def get_simulation_detail(
         "score_delta": log.score_delta,
         "rank_change": log.rank_change,
         "agent_analysis": log.agent_analysis,
-        "created_at": log.created_at.isoformat()
+        "analysis_report": log.analysis_report,
+        "created_at": log.created_at.strftime("%Y-%m-%d %H:%M:%S")
     }
 
 
@@ -143,7 +145,88 @@ def agent_analyze_policy(
 
     result = coordinator.analyze_policy_impact(context)
 
+    # 保存分析报告到仿真记录
+    simulator = WhatIfSimulator(db)
+    log = simulator.save_agent_analysis(
+        region_code=request.region_code,
+        region_name=request.region_name,
+        report_year=request.report_year,
+        analysis_result=result
+    )
+
+    result["simulation_id"] = str(log.id)
+
     return result
+
+
+@router.post("/agent-analyze-stream")
+async def agent_analyze_policy_stream(
+    request: AgentAnalyzeRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Agent智能体分析（流式版本）
+    使用Server-Sent Events流式返回分析结果
+    """
+    from fastapi.responses import StreamingResponse
+    import json
+
+    coordinator = AgentCoordinator(db)
+
+    context = {
+        "region_code": request.region_code,
+        "region_name": request.region_name,
+        "report_year": request.report_year,
+        "policy_changes": [
+            {"indicator_code": p.indicator_code, "change_percent": p.change_percent}
+            for p in request.policy_changes
+        ]
+    }
+
+    # 先执行仿真获取基础数据
+    simulator = WhatIfSimulator(db)
+    result = coordinator.analyze_policy_impact(context)
+
+    # 保存分析报告到仿真记录
+    log = simulator.save_agent_analysis(
+        region_code=request.region_code,
+        region_name=request.region_name,
+        report_year=request.report_year,
+        analysis_result=result
+    )
+
+    # 构建流式响应
+    async def generate():
+        # 先发送simulation_id
+        yield f"data: {json.dumps({'type': 'start', 'simulation_id': str(log.id)})}\n\n"
+
+        # 获取LLM分析并流式发送
+        llm_analysis = result.get("llm_analysis", "")
+        if llm_analysis:
+            # 逐字符或分段发送（这里直接发送完整内容，因为DeepSeek流式已在LLM服务中处理）
+            yield f"data: {json.dumps({'type': 'content', 'content': llm_analysis})}\n\n"
+        else:
+            # 如果没有LLM分析，发送结构化数据
+            insights = result.get("insights", [])
+            recommendations = result.get("recommendations", [])
+
+            if insights:
+                yield f"data: {json.dumps({'type': 'insights', 'data': insights})}\n\n"
+            if recommendations:
+                yield f"data: {json.dumps({'type': 'recommendations', 'data': recommendations})}\n\n"
+
+        # 发送完成信号
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 @router.get("/agent/full-analysis")

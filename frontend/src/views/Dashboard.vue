@@ -50,7 +50,7 @@
           <el-form :inline="true">
             <el-form-item label="区域">
               <el-select v-model="regionCode" placeholder="请选择区域" @change="loadData">
-                <el-option label="默认城市" value="default" />
+                <el-option v-for="city in cities" :key="city.city_code" :label="city.city_name" :value="city.city_code" />
               </el-select>
             </el-form-item>
             <el-form-item label="年份">
@@ -92,12 +92,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { evaluationAPI } from '../api'
+import { evaluationAPI, benchmarkAPI } from '../api'
 import RadarChart from '../components/RadarChart.vue'
 
 const regionCode = ref('default')
 const reportYear = ref(2024)
 const years = [2020, 2021, 2022, 2023, 2024, 2025]
+const cities = ref<any[]>([])
 
 const radarData = ref<any>({
   dimensions: [],
@@ -126,7 +127,16 @@ const loadData = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    const res = await benchmarkAPI.listCities()
+    cities.value = res.cities || []
+    if (cities.value.length > 0) {
+      regionCode.value = cities.value[0].city_code
+    }
+  } catch (e) {
+    console.error('加载城市列表失败', e)
+  }
   loadData()
 })
 </script>

@@ -1,9 +1,16 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from sqlalchemy import Column, String, Float, Integer, DateTime, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+# 上海时区
+SHANGHAI_TZ = timezone(timedelta(hours=8))
+
+def now_shanghai():
+    """返回上海时区的当前时间"""
+    return datetime.now(SHANGHAI_TZ)
 
 
 class Indicator(Base):
@@ -22,8 +29,8 @@ class Indicator(Base):
     description = Column(Text)
     status = Column(Integer, default=1)
     version = Column(String(20), default="1.0")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_shanghai)
+    updated_at = Column(DateTime, default=now_shanghai, onupdate=now_shanghai)
 
     raw_data = relationship("RawData", back_populates="indicator")
     standard_scores = relationship("StandardScore", back_populates="indicator")
@@ -42,8 +49,8 @@ class RawData(Base):
     raw_value = Column(Float, nullable=False)
     data_status = Column(Integer, default=1)  # 1=已审核, 0=待审核
     created_by = Column(String(50))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_shanghai)
+    updated_at = Column(DateTime, default=now_shanghai, onupdate=now_shanghai)
 
     __table_args__ = (
         UniqueConstraint('region_code', 'indicator_code', 'report_year', 'report_month', name='uq_raw_data'),
@@ -66,7 +73,7 @@ class StandardScore(Base):
     min_value = Column(Float)
     max_value = Column(Float)
     standard_score = Column(Float, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_shanghai)
 
     __table_args__ = (
         UniqueConstraint('region_code', 'indicator_code', 'report_year', 'report_month', name='uq_standard_score'),
@@ -97,7 +104,7 @@ class Evaluation(Base):
     city_rank = Column(Integer)
     province_rank = Column(Integer)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_shanghai)
 
 
 class SimulationLog(Base):
@@ -107,6 +114,7 @@ class SimulationLog(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(String(50))
     region_code = Column(String(20), nullable=False)
+    region_name = Column(String(50))
     simulation_name = Column(String(100))
     params = Column(JSONB, nullable=False)
     original_total_score = Column(Float)
@@ -114,7 +122,8 @@ class SimulationLog(Base):
     score_delta = Column(Float)
     rank_change = Column(Integer)
     agent_analysis = Column(JSONB)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    analysis_report = Column(Text)  # Markdown格式的分析报告
+    created_at = Column(DateTime, default=now_shanghai)
 
 
 class BenchmarkCity(Base):
@@ -130,7 +139,7 @@ class BenchmarkCity(Base):
     gdp = Column(Float)
     description = Column(Text)
     status = Column(Integer, default=1)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_shanghai)
 
 
 class User(Base):
@@ -144,4 +153,4 @@ class User(Base):
     full_name = Column(String(100))
     role = Column(String(20), default="user")  # admin/user/analyst
     is_active = Column(Integer, default=1)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_shanghai)

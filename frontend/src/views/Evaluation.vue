@@ -7,7 +7,7 @@
       <el-form :inline="true" style="margin-bottom: 20px;">
         <el-form-item label="区域">
           <el-select v-model="regionCode" @change="loadEvaluation">
-            <el-option label="默认城市" value="default" />
+            <el-option v-for="city in cities" :key="city.city_code" :label="city.city_name" :value="city.city_code" />
           </el-select>
         </el-form-item>
         <el-form-item label="年份">
@@ -51,11 +51,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
-import { evaluationAPI } from '../api'
+import { evaluationAPI, benchmarkAPI } from '../api'
 import * as echarts from 'echarts'
 
 const regionCode = ref('default')
 const reportYear = ref(2024)
+const cities = ref<any[]>([])
 const dimensionDetail = ref<any[]>([])
 const trendData = ref<any[]>([])
 const trendChartRef = ref<HTMLElement>()
@@ -127,7 +128,16 @@ const initTrendChart = () => {
   trendChart.setOption(option)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    const res = await benchmarkAPI.listCities()
+    cities.value = res.cities || []
+    if (cities.value.length > 0) {
+      regionCode.value = cities.value[0].city_code
+    }
+  } catch (e) {
+    console.error('加载城市列表失败', e)
+  }
   loadEvaluation()
 })
 </script>

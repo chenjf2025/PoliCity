@@ -6,6 +6,8 @@ services:
       - "6380:6379"
     networks:
       - cgdss-network
+    environment:
+      TZ: Asia/Shanghai
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -19,14 +21,10 @@ services:
     container_name: cgdss-backend
     ports:
       - "8000:8000"
+    env_file:
+      - ./backend/.env
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://nexteacher:nexteacher8018@192.168.71.127:5433/cgdss}
-      REDIS_URL: ${REDIS_URL:-redis://192.168.71.127:6380/0}
-      DIFY_API_URL: ${DIFY_API_URL:-http://192.168.71.101:8080/v1}
-      DIFY_API_KEY: ${DIFY_API_KEY}
-      DIFY_APP_ID: ${DIFY_APP_ID}
-      DIFY_DATASET_ID: ${DIFY_DATASET_ID}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      TZ: Asia/Shanghai
     networks:
       - cgdss-network
     volumes:
@@ -44,6 +42,8 @@ services:
       - backend
     networks:
       - cgdss-network
+    environment:
+      TZ: Asia/Shanghai
 
 networks:
   cgdss-network:

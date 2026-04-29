@@ -5,11 +5,11 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import uuid
 import pandas as pd
 from app.core.database import get_db
-from app.models.indicator import RawData, StandardScore, Indicator
+from app.models.indicator import RawData, StandardScore, Indicator, now_shanghai
 from app.services.normalizer import Normalizer
 
 router = APIRouter(prefix="/data", tags=["数据采集"])
@@ -68,7 +68,7 @@ def create_raw_data(
     if existing:
         # 更新
         existing.raw_value = data.raw_value
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = now_shanghai()
         db.commit()
         db.refresh(existing)
         return RawDataResponse(
@@ -189,7 +189,7 @@ async def import_raw_data(
 
                 if existing:
                     existing.raw_value = float(raw_value)
-                    existing.updated_at = datetime.utcnow()
+                    existing.updated_at = now_shanghai()
                 else:
                     db_data = RawData(
                         id=uuid.uuid4(),

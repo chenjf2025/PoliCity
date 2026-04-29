@@ -3,10 +3,15 @@ What-If 政策仿真模拟器
 基于历史回归关系，模拟指标变化对总分的影响
 """
 from typing import Dict, List, Optional
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from app.models.indicator import Indicator, SimulationLog, RawData
 from app.services.evaluator import EvaluationEngine
 from app.services.normalizer import Normalizer
+
+# 上海时区
+SHANGHAI_TZ = timezone(timedelta(hours=8))
+UTC_TZ = timezone.utc
 import uuid
 
 
@@ -266,11 +271,90 @@ class WhatIfSimulator:
             {
                 "id": str(log.id),
                 "region_code": log.region_code,
+                "region_name": log.region_name,
                 "simulation_name": log.simulation_name,
                 "original_total_score": log.original_total_score,
                 "simulated_total_score": log.simulated_total_score,
                 "score_delta": log.score_delta,
-                "created_at": log.created_at.isoformat()
+                "analysis_report": log.analysis_report,
+                "created_at": (log.created_at + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S") if log.created_at else None
             }
             for log in logs
         ]
+
+    def save_agent_analysis(
+        self,
+        region_code: str,
+        region_name: str,
+        report_year: int,
+        analysis_result: Dict
+    ) -> SimulationLog:
+        """
+        保存Agent分析报告为仿真记录
+
+        Args:
+            region_code: 行政区划代码
+            region_name: 行政区划名称
+            report_year: 报告年份
+            analysis_result: Agent分析结果
+
+        Returns:
+            保存的仿真记录
+        """
+        # 获取LLM生成的分析内容（Markdown格式）
+        llm_analysis = analysis_result.get("llm_analysis", "")
+
+        # 构建分析报告（Markdown格式）
+        policy_analysis = analysis_result.get("policy_analysis", {})
+        recommendations = analysis_result.get("recommendations", [])
+        insights = analysis_result.get("insights", [])
+
+        if llm_analysis:
+            # 如果有LLM生成的Markdown报告，直接使用
+            analysis_report = llm_analysis
+        else:
+            # 否则构建结构化报告
+            report_lines = [f"## {region_name} 政策仿真分析报告\n"]
+            report_lines.append(f"**分析时间**: {datetime.now(SHANGHAI_TZ).strftime('%Y-%m-%d %H:%M:%S')}\n")
+            report_lines.append(f"**报告年份**: {report_year}\n\n")
+
+            if insights:
+                report_lines.append("### 关键洞察\n")
+                for i, insight in enumerate(insights, 1):
+                    report_lines.append(f"{i}. {insight}\n")
+                report_lines.append("\n")
+
+            if policy_analysis:
+                original = policy_analysis.get("original_score", 0)
+                simulated = policy_analysis.get("simulated_score", 0)
+                change = policy_analysis.get("change_percent", 0)
+                report_lines.append("### 分数变化\n")
+                report_lines.append(f"- 原始总分: {original}\n")
+                report_lines.append(f"- 仿真后总分: {simulated}\n")
+                report_lines.append(f"- 变化率: {change:.2f}%\n\n")
+
+            if recommendations:
+                report_lines.append("### 政策建议\n")
+                for i, rec in enumerate(recommendations, 1):
+                    report_lines.append(f"{i}. {rec}\n")
+
+            analysis_report = "".join(report_lines)
+
+        # 保存仿真记录
+        log = SimulationLog(
+            id=uuid.uuid4(),
+            region_code=region_code,
+            region_name=region_name,
+            simulation_name=f"{region_name}_Agent分析",
+            params=[],
+            original_total_score=policy_analysis.get("original_score", 0) if policy_analysis else 0,
+            simulated_total_score=policy_analysis.get("simulated_score", 0) if policy_analysis else 0,
+            score_delta=policy_analysis.get("expected_change", 0) if policy_analysis else 0,
+            agent_analysis=analysis_result,
+            analysis_report=analysis_report
+        )
+        self.db.add(log)
+        self.db.commit()
+        self.db.refresh(log)
+
+        return log
