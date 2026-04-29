@@ -68,7 +68,8 @@ class EvaluationEngine:
         # 获取原始数据
         query = self.db.query(RawData).filter(
             RawData.indicator_code == indicator_code,
-            RawData.report_year == report_year
+            RawData.report_year == report_year,
+            RawData.region_code == region_code
         )
         if report_month:
             query = query.filter(RawData.report_month == report_month)
