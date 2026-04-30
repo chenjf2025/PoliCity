@@ -5,9 +5,13 @@ const apiClient = axios.create({
   timeout: 30000
 })
 
-// 请求拦截器
+// 请求拦截器 - 添加Token
 apiClient.interceptors.request.use(
   (config) => {
+    const token = localStorage.getItem('cgdss_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => {
@@ -21,6 +25,11 @@ apiClient.interceptors.response.use(
     return response.data
   },
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('cgdss_token')
+      localStorage.removeItem('cgdss_user')
+      window.location.href = '/login'
+    }
     console.error('API请求失败:', error.response?.data?.detail || error.message)
     return Promise.reject(error)
   }
@@ -157,6 +166,53 @@ export const difyAPI = {
       conversation_id: params.conversation_id || ''
     })}`)
   },
+}
+
+// 认证API
+export const authAPI = {
+  register: (data: { username: string; phone: string; email: string; password: string }) =>
+    apiClient.post('/auth/register', data),
+
+  login: (data: { username: string; password: string; remember?: boolean }) =>
+    apiClient.post('/auth/login', data),
+
+  changePassword: (data: { old_password: string; new_password: string }) =>
+    apiClient.post('/auth/change-password', data),
+
+  getProfile: () =>
+    apiClient.get('/auth/profile'),
+
+  updateProfile: (data: { phone?: string; email?: string; full_name?: string }) =>
+    apiClient.put('/auth/profile', data),
+
+  // 管理员接口
+  getUsers: (status?: number) =>
+    apiClient.get('/auth/admin/users', { params: { status } }),
+
+  createUser: (data: { username: string; phone: string; email: string; password: string; role: string }) =>
+    apiClient.post('/auth/admin/users', data),
+
+  updateUser: (userId: string, data: { phone?: string; email?: string; full_name?: string; role?: string; is_active?: number }) =>
+    apiClient.put(`/auth/admin/users/${userId}`, data),
+
+  approveUser: (userId: string) =>
+    apiClient.post(`/auth/admin/users/${userId}/approve`),
+
+  rejectUser: (userId: string) =>
+    apiClient.post(`/auth/admin/users/${userId}/reject`),
+
+  deleteUser: (userId: string) =>
+    apiClient.delete(`/auth/admin/users/${userId}`),
+
+  getLogs: (limit?: number) =>
+    apiClient.get('/auth/admin/logs', { params: { limit } }),
+
+  forgotPassword: (phone: string) =>
+    apiClient.post('/auth/forgot-password', null, { params: { phone } }),
+
+  resetPassword: (phone: string, code: string, new_password: string) =>
+    apiClient.post('/auth/reset-password', null, { params: { phone, code, new_password } }),
+}
 
   getConversations: (userId?: string, limit?: number) =>
     apiClient.get('/dify/conversations', { params: { user_id: userId, limit } }),

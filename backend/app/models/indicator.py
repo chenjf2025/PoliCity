@@ -148,9 +148,26 @@ class User(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String(50), unique=True, nullable=False)
+    phone = Column(String(20), unique=True)
     email = Column(String(100), unique=True)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100))
-    role = Column(String(20), default="user")  # admin/user/analyst
-    is_active = Column(Integer, default=1)
+    role = Column(String(20), default="user")  # admin/user
+    is_active = Column(Integer, default=1)  # -1=禁用, 0=待审批, 1=正常
+    must_change_password = Column(Integer, default=0)  # 首次登录需改密
+    last_login = Column(DateTime)
+    created_at = Column(DateTime, default=now_shanghai)
+    updated_at = Column(DateTime, default=now_shanghai, onupdate=now_shanghai)
+
+
+class OperationLog(Base):
+    """操作日志表"""
+    __tablename__ = "sys_operation_log"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String(50))
+    username = Column(String(50))
+    action = Column(String(50))
+    detail = Column(Text)
+    ip_address = Column(String(50))
     created_at = Column(DateTime, default=now_shanghai)
