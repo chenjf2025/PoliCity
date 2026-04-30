@@ -3,7 +3,7 @@
     <div class="dashboard-card">
       <div class="card-title">系统管理</div>
 
-      <el-tabs v-model="activeTab" class="admin-tabs">
+      <el-tabs v-model="activeTab" class="admin-tabs" @tab-change="onTabChange">
         <!-- 用户管理 -->
         <el-tab-pane label="用户管理" name="users">
           <div class="toolbar">
@@ -78,6 +78,95 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
+
+        <!-- 异常数据审核 -->
+        <el-tab-pane label="异常数据" name="anomalies">
+          <div class="toolbar">
+            <el-select v-model="anomalyStatus" placeholder="状态筛选" style="width: 150px;" @change="loadAnomalies">
+              <el-option label="全部" value="" />
+              <el-option label="待处理" value="PENDING" />
+              <el-option label="已确认" value="CONFIRMED" />
+              <el-option label="已忽略" value="IGNORED" />
+            </el-select>
+            <el-button type="primary" style="margin-left: 10px;" @click="loadAnomalies">
+              <el-icon><Refresh /></el-icon> 刷新
+            </el-button>
+            <el-button type="success" @click="batchConfirmAnomalies" :disabled="selectedAnomalies.length === 0">
+              批量确认
+            </el-button>
+            <el-button type="warning" @click="batchIgnoreAnomalies" :disabled="selectedAnomalies.length === 0">
+              批量忽略
+            </el-button>
+          </div>
+
+          <el-table :data="anomalies" stripe style="margin-top: 16px;" v-loading="loadingAnomalies" @selection-change="onAnomalySelectionChange">
+            <el-table-column type="selection" width="55" />
+            <el-table-column prop="indicator_code" label="指标编码" width="120" />
+            <el-table-column prop="region_name" label="区域" width="120" />
+            <el-table-column prop="report_year" label="年份" width="80" />
+            <el-table-column prop="value" label="数值" width="100">
+              <template #default="{ row }">
+                <span style="color: #f56c6c; font-weight: bold;">{{ row.value }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="anomaly_type" label="异常类型" width="120">
+              <template #default="{ row }">
+                <el-tag v-if="row.anomaly_type === 'OVER_MAX'" type="danger">超出最大值</el-tag>
+                <el-tag v-else-if="row.anomaly_type === 'UNDER_MIN'" type="warning">低于最小值</el-tag>
+                <el-tag v-else-if="row.anomaly_type === 'FLUCTUATION'" type="warning">波动过大</el-tag>
+                <el-tag v-else-if="row.anomaly_type === 'TREND_CHANGE'" type="info">趋势突变</el-tag>
+                <el-tag v-else type="info">{{ row.anomaly_type }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="异常描述" min-width="200" />
+            <el-table-column prop="status" label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag v-if="row.status === 'PENDING'" type="warning">待处理</el-tag>
+                <el-tag v-else-if="row.status === 'CONFIRMED'" type="danger">已确认</el-tag>
+                <el-tag v-else type="info">已忽略</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="{ row }">
+                <el-button v-if="row.status === 'PENDING'" type="success" size="small" link @click="confirmAnomaly(row)">确认</el-button>
+                <el-button v-if="row.status === 'PENDING'" type="warning" size="small" link @click="ignoreAnomaly(row)">忽略</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <!-- 删除审核 -->
+        <el-tab-pane label="删除审核" name="deletes">
+          <div class="toolbar">
+            <el-button type="primary" @click="loadPendingDeletes">
+              <el-icon><Refresh /></el-icon> 刷新
+            </el-button>
+          </div>
+
+          <el-table :data="pendingDeletes" stripe style="margin-top: 16px;" v-loading="loadingDeletes">
+            <el-table-column prop="region_name" label="区域" width="120" />
+            <el-table-column prop="indicator_code" label="指标编码" width="120" />
+            <el-table-column prop="report_year" label="年份" width="80" />
+            <el-table-column prop="raw_value" label="数值" width="100" />
+            <el-table-column prop="source_name" label="来源" min-width="150">
+              <template #default="{ row }">
+                <span v-if="row.source_name">{{ row.source_name }}</span>
+                <span v-else style="color: #909399;">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="updated_at" label="申请时间" width="160">
+              <template #default="{ row }">
+                {{ row.updated_at ? new Date(row.updated_at).toLocaleString() : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="150" fixed="right">
+              <template #default="{ row }">
+                <el-button type="success" size="small" link @click="approveDelete(row)">批准删除</el-button>
+                <el-button type="warning" size="small" link @click="rejectDelete(row)">拒绝</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
       </el-tabs>
     </div>
 
@@ -139,7 +228,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
-import { authAPI } from '../api'
+import { authAPI, dataAPI } from '../api'
 
 const activeTab = ref('users')
 const loadingUsers = ref(false)
@@ -155,6 +244,16 @@ const showEditDialog = ref(false)
 
 // 日志列表
 const logs = ref<any[]>([])
+
+// 异常数据列表
+const anomalies = ref<any[]>([])
+const anomalyStatus = ref('')
+const selectedAnomalies = ref<any[]>([])
+const loadingAnomalies = ref(false)
+
+// 删除审核列表
+const pendingDeletes = ref<any[]>([])
+const loadingDeletes = ref(false)
 
 // 创建表单
 const createFormRef = ref<FormInstance>()
@@ -225,6 +324,111 @@ const loadLogs = async () => {
     console.error(e)
   } finally {
     loadingLogs.value = false
+  }
+}
+
+// 异常数据相关
+const loadAnomalies = async () => {
+  loadingAnomalies.value = true
+  try {
+    const params: any = {}
+    if (anomalyStatus.value) params.status = anomalyStatus.value
+    const res: any = await dataAPI.listAnomalies(params)
+    anomalies.value = res
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingAnomalies.value = false
+  }
+}
+
+const onAnomalySelectionChange = (selection: any[]) => {
+  selectedAnomalies.value = selection
+}
+
+const confirmAnomaly = async (row: any) => {
+  try {
+    await dataAPI.confirmAnomaly(row.id)
+    ElMessage.success('已确认')
+    loadAnomalies()
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.detail || '操作失败')
+  }
+}
+
+const ignoreAnomaly = async (row: any) => {
+  try {
+    await dataAPI.ignoreAnomaly(row.id)
+    ElMessage.success('已忽略')
+    loadAnomalies()
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.detail || '操作失败')
+  }
+}
+
+const batchConfirmAnomalies = async () => {
+  try {
+    const ids = selectedAnomalies.value.map((a: any) => a.id)
+    await dataAPI.batchConfirmAnomalies(ids)
+    ElMessage.success('批量确认成功')
+    loadAnomalies()
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.detail || '操作失败')
+  }
+}
+
+const batchIgnoreAnomalies = async () => {
+  try {
+    const ids = selectedAnomalies.value.map((a: any) => a.id)
+    await dataAPI.batchIgnoreAnomalies(ids)
+    ElMessage.success('批量忽略成功')
+    loadAnomalies()
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.detail || '操作失败')
+  }
+}
+
+// 删除审核相关
+const loadPendingDeletes = async () => {
+  loadingDeletes.value = true
+  try {
+    const res: any = await dataAPI.listPendingDeletes()
+    pendingDeletes.value = res
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingDeletes.value = false
+  }
+}
+
+const approveDelete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm('确定要批准删除吗？数据将被永久删除！', '确认', { type: 'warning' })
+    await dataAPI.approveDelete(row.id)
+    ElMessage.success('删除已批准')
+    loadPendingDeletes()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error(e.response?.data?.detail || '操作失败')
+    }
+  }
+}
+
+const rejectDelete = async (row: any) => {
+  try {
+    await dataAPI.rejectDelete(row.id)
+    ElMessage.success('已拒绝，数据已恢复')
+    loadPendingDeletes()
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.detail || '操作失败')
+  }
+}
+
+const onTabChange = (tabName: string) => {
+  if (tabName === 'anomalies') {
+    loadAnomalies()
+  } else if (tabName === 'deletes') {
+    loadPendingDeletes()
   }
 }
 

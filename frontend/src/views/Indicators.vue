@@ -64,12 +64,18 @@
     </div>
 
     <!-- 导入对话框 -->
-    <el-dialog v-model="showImportDialog" title="导入原始数据" width="500px">
-      <el-form>
+    <el-dialog v-model="showImportDialog" title="导入原始数据" width="600px">
+      <el-form label-width="100px">
         <el-form-item label="报告年份">
           <el-select v-model="importYear" style="width: 100%;">
             <el-option v-for="y in [2020,2021,2022,2023,2024,2025]" :key="y" :label="y" :value="y" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="来源名称">
+          <el-input v-model="importSourceName" placeholder="如：国家统计局年鉴2024" />
+        </el-form-item>
+        <el-form-item label="来源链接">
+          <el-input v-model="importSourceUrl" placeholder="如：https://stats.gov.cn/tjsj/ndsj/2024" />
         </el-form-item>
         <el-form-item label="Excel文件">
           <el-upload
@@ -80,6 +86,12 @@
             :on-change="handleFileChange"
           >
             <el-button>选择文件</el-button>
+            <template #tip>
+              <div class="el-upload__tip">
+                Excel格式：第一列region_code，第二列region_name，第三列起为指标编码
+                <br/>可选在Excel中添加source_name、source_url列覆盖上方设置
+              </div>
+            </template>
           </el-upload>
         </el-form-item>
       </el-form>
@@ -102,6 +114,8 @@ const dimensionSummary = ref<any[]>([])
 const selectedDimension = ref('')
 const showImportDialog = ref(false)
 const importYear = ref(2024)
+const importSourceName = ref('')
+const importSourceUrl = ref('')
 const importFile = ref<UploadFile | null>(null)
 const importing = ref(false)
 const uploadRef = ref()
@@ -133,18 +147,27 @@ const importData = async () => {
 
   importing.value = true
   try {
-    const formData = new FormData()
-    // el-upload 的 file.raw 是原始文件对象
     const fileToUpload = importFile.value.raw || importFile.value
-    formData.append('file', fileToUpload)
 
     console.log('Uploading file:', importFile.value.name, fileToUpload)
 
-    const response = await dataAPI.importExcel(formData, importYear.value)
-    ElMessage.success(`导入成功！共导入 ${response.imported_count} 条数据`)
+    const response = await dataAPI.importExcel(
+      fileToUpload,
+      importYear.value,
+      importSourceName.value || undefined,
+      importSourceUrl.value || undefined
+    )
+
+    let msg = `导入成功！共导入 ${response.imported_count} 条数据`
+    if (response.anomaly_count > 0) {
+      msg += `，发现 ${response.anomaly_count} 条异常数据`
+    }
+    ElMessage.success(msg)
     showImportDialog.value = false
     importFile.value = null
     uploadRef.value?.clearFiles()
+    importSourceName.value = ''
+    importSourceUrl.value = ''
   } catch (error: any) {
     console.error('导入失败:', error)
     let errorMsg = '导入失败'

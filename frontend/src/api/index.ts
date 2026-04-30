@@ -58,8 +58,12 @@ export const indicatorAPI = {
 
 // 数据采集API
 export const dataAPI = {
-  importExcel: (file: FormData, reportYear: number) => {
-    return apiClient.post(`/data/raw/import?report_year=${reportYear}`, file)
+  importExcel: (file: FormData, reportYear: number, sourceName?: string, sourceUrl?: string) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (sourceName) formData.append('source_name', sourceName)
+    if (sourceUrl) formData.append('source_url', sourceUrl)
+    return apiClient.post(`/data/raw/import?report_year=${reportYear}`, formData)
   },
 
   createRaw: (data: any) =>
@@ -68,11 +72,50 @@ export const dataAPI = {
   listRaw: (params?: any) =>
     apiClient.get('/data/raw', { params }),
 
+  deleteRaw: (dataId: string) =>
+    apiClient.delete(`/data/raw/${dataId}`),
+
   normalize: (reportYear: number, reportMonth?: number) =>
     apiClient.post('/data/normalize', { report_year: reportYear, report_month: reportMonth }),
 
   getStandardScores: (regionCode: string, reportYear: number, reportMonth?: number) =>
-    apiClient.get('/data/standard-score', { params: { region_code: regionCode, report_year: reportYear, report_month: reportMonth } })
+    apiClient.get('/data/standard-score', { params: { region_code: regionCode, report_year: reportYear, report_month: reportMonth } }),
+
+  // 异常数据API
+  listAnomalies: (params?: { status?: string; indicator_code?: string; region_code?: string }) =>
+    apiClient.get('/data/anomalies', { params }),
+
+  confirmAnomaly: (anomalyId: string) =>
+    apiClient.post(`/data/anomalies/${anomalyId}/confirm`),
+
+  ignoreAnomaly: (anomalyId: string) =>
+    apiClient.post(`/data/anomalies/${anomalyId}/ignore`),
+
+  batchConfirmAnomalies: (anomalyIds: string[]) =>
+    apiClient.post('/data/anomalies/batch-confirm', anomalyIds),
+
+  batchIgnoreAnomalies: (anomalyIds: string[]) =>
+    apiClient.post('/data/anomalies/batch-ignore', anomalyIds),
+
+  // 删除审核API
+  listPendingDeletes: (params?: any) =>
+    apiClient.get('/data/pending-deletes', { params }),
+
+  approveDelete: (dataId: string) =>
+    apiClient.post(`/data/pending-deletes/${dataId}/approve`),
+
+  rejectDelete: (dataId: string) =>
+    apiClient.post(`/data/pending-deletes/${dataId}/reject`),
+
+  // 异常规则API
+  listAnomalyRules: (indicatorCode?: string) =>
+    apiClient.get('/data/anomaly-rules', { params: { indicator_code: indicatorCode } }),
+
+  createAnomalyRule: (rule: any) =>
+    apiClient.post('/data/anomaly-rules', rule),
+
+  deleteAnomalyRule: (indicatorCode: string) =>
+    apiClient.delete(`/data/anomaly-rules/${indicatorCode}`)
 }
 
 // 评价引擎API

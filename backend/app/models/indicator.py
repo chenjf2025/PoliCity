@@ -47,7 +47,10 @@ class RawData(Base):
     report_year = Column(Integer, nullable=False)
     report_month = Column(Integer)
     raw_value = Column(Float, nullable=False)
-    data_status = Column(Integer, default=1)  # 1=已审核, 0=待审核
+    data_status = Column(Integer, default=1)  # 1=已审核, 0=待审核, -1=已删除待审核
+    source_name = Column(String(200))  # 数据来源名称
+    source_url = Column(String(500))   # 数据来源链接
+    is_deleted = Column(Integer, default=0)  # 软删除标记
     created_by = Column(String(50))
     created_at = Column(DateTime, default=now_shanghai)
     updated_at = Column(DateTime, default=now_shanghai, onupdate=now_shanghai)
@@ -171,3 +174,46 @@ class OperationLog(Base):
     detail = Column(Text)
     ip_address = Column(String(50))
     created_at = Column(DateTime, default=now_shanghai)
+
+
+class AnomalyRule(Base):
+    """异常检测规则表"""
+    __tablename__ = "config_anomaly_rule"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    indicator_code = Column(String(10), ForeignKey("dict_indicator.indicator_code"), nullable=False)
+    min_value = Column(Float)           # 合理最小值
+    max_value = Column(Float)           # 合理最大值
+    max_fluctuation = Column(Float)     # 最大波动百分比
+    description = Column(String(500))    # 规则描述
+    status = Column(Integer, default=1) # 1=启用, 0=禁用
+    created_at = Column(DateTime, default=now_shanghai)
+    updated_at = Column(DateTime, default=now_shanghai, onupdate=now_shanghai)
+
+    __table_args__ = (
+        UniqueConstraint('indicator_code', name='uq_anomaly_rule'),
+    )
+
+    indicator = relationship("Indicator")
+
+
+class AnomalyRecord(Base):
+    """异常记录表"""
+    __tablename__ = "data_anomaly_record"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    raw_data_id = Column(UUID(as_uuid=True), ForeignKey("data_raw_record.id"), nullable=False)
+    indicator_code = Column(String(10), nullable=False)
+    region_code = Column(String(20), nullable=False)
+    region_name = Column(String(50))
+    report_year = Column(Integer, nullable=False)
+    report_month = Column(Integer)
+    value = Column(Float, nullable=False)
+    anomaly_type = Column(String(50), nullable=False)  # OVER_MAX/UNDER_MIN/FLUCTUATION/TREND_CHANGE
+    description = Column(Text)
+    status = Column(String(20), default="PENDING")  # PENDING/CONFIRMED/IGNORED
+    confirmed_by = Column(String(50))
+    confirmed_at = Column(DateTime)
+    created_at = Column(DateTime, default=now_shanghai)
+
+    raw_data = relationship("RawData")
