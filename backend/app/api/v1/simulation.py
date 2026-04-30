@@ -128,8 +128,7 @@ def agent_analyze_policy(
     db: Session = Depends(get_db)
 ):
     """
-    Agent智能体分析
-    使用多智能体框架分析政策变化的影响
+    Agent智能体分析（非流式版本，仅返回结果）
     """
     coordinator = AgentCoordinator(db)
 
@@ -144,18 +143,6 @@ def agent_analyze_policy(
     }
 
     result = coordinator.analyze_policy_impact(context)
-
-    # 保存分析报告到仿真记录
-    simulator = WhatIfSimulator(db)
-    log = simulator.save_agent_analysis(
-        region_code=request.region_code,
-        region_name=request.region_name,
-        report_year=request.report_year,
-        analysis_result=result
-    )
-
-    result["simulation_id"] = str(log.id)
-
     return result
 
 
@@ -213,7 +200,7 @@ async def agent_analyze_policy_stream(
     async def generate():
         import json as json_module
         # 先发送simulation基础数据
-        start_data = json_module.dumps({'type': 'start', 'simulation_id': simulation_result.get('id', '')})
+        start_data = json_module.dumps({'type': 'start', 'simulation_id': simulation_result.get('simulation_id', '')})
         yield f"data: {start_data}\n\n"
         sim_data = json_module.dumps({'type': 'simulation', 'data': {
             'original_score': simulation_result.get('original_scores', {}).get('total_score'),
@@ -252,7 +239,7 @@ async def agent_analyze_policy_stream(
             try:
                 from app.models.indicator import SimulationLog
                 log = db.query(SimulationLog).filter(
-                    SimulationLog.id == simulation_result.get('id')
+                    SimulationLog.id == simulation_result.get('simulation_id')
                 ).first()
                 if log:
                     log.analysis_report = ''.join(full_content)
