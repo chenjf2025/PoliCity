@@ -214,6 +214,20 @@ class EvaluationEngine:
         """
         scores = self.calculate_total_score(region_code, report_year, report_month)
 
+        # 获取数据来源信息
+        raw_data = self.db.query(RawData).filter(
+            RawData.region_code == region_code,
+            RawData.report_year == report_year,
+            RawData.is_deleted == 0
+        ).first()
+
+        source_info = None
+        if raw_data and raw_data.source_name:
+            source_info = {
+                "source_name": raw_data.source_name,
+                "source_url": raw_data.source_url
+            }
+
         return {
             "dimensions": [
                 {"name": "经济活力", "code": "economic", "score": scores.get("economic_score"), "weight": 0.25},
@@ -222,7 +236,8 @@ class EvaluationEngine:
                 {"name": "城乡融合", "code": "urban", "score": scores.get("urban_score"), "weight": 0.20},
                 {"name": "城市治理", "code": "governance", "score": scores.get("governance_score"), "weight": 0.20}
             ],
-            "total_score": scores.get("total_score")
+            "total_score": scores.get("total_score"),
+            "source": source_info
         }
 
     def identify_shortboards(

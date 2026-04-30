@@ -3,7 +3,15 @@
     <!-- 顶部统计卡片 -->
     <el-row :gutter="20" style="margin-bottom: 20px;">
       <el-col :span="6">
-        <div class="dashboard-card">
+        <div class="dashboard-card source-tooltip" v-if="radarData.source">
+          <el-tooltip :content="`来源: ${radarData.source.source_name}${radarData.source.source_url ? '<br/>链接: ' + radarData.source.source_url : ''}`" raw-content>
+            <div>
+              <div class="stat-number">{{ radarData.total_score || '--' }}</div>
+              <div class="stat-label">综合发展指数 <el-icon><QuestionFilled /></el-icon></div>
+            </div>
+          </el-tooltip>
+        </div>
+        <div class="dashboard-card" v-else>
           <div class="stat-number">{{ radarData.total_score || '--' }}</div>
           <div class="stat-label">综合发展指数</div>
         </div>
@@ -93,6 +101,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { evaluationAPI, benchmarkAPI } from '../api'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import RadarChart from '../components/RadarChart.vue'
 
 const regionCode = ref('default')
@@ -152,5 +161,21 @@ onMounted(async () => {
 
 :deep(.el-select .el-input__inner) {
   width: 150px;
+}
+
+.source-tooltip {
+  cursor: pointer;
+}
+
+.source-tooltip .el-icon {
+  margin-left: 4px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.stat-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
