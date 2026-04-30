@@ -240,10 +240,25 @@ async def agent_analyze_policy_stream(
 
         try:
             messages = [{"role": "user", "content": prompt}]
+            # 收集完整内容用于保存
+            full_content = []
             # 使用流式调用LLM
             for chunk in llm_service.chat_stream(messages, system_prompt=system_prompt):
+                full_content.append(chunk)
                 yield f"data: {json.dumps({'type': 'content', 'content': chunk})}\n\n"
                 await asyncio.sleep(0)  # 让出控制权让其他协程可以执行
+
+            # 流式结束后，保存分析报告到数据库
+            try:
+                from app.models.indicator import SimulationLog
+                log = db.query(SimulationLog).filter(
+                    SimulationLog.id == simulation_result.get('id')
+                ).first()
+                if log:
+                    log.analysis_report = ''.join(full_content)
+                    db.commit()
+            except Exception as save_err:
+                pass  # 保存失败不影响流式输出
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
 
