@@ -45,7 +45,15 @@
         </div>
       </el-col>
       <el-col :span="6">
-        <div class="dashboard-card">
+        <div class="dashboard-card source-tooltip" v-if="radarData.source">
+          <el-tooltip :content="`来源: ${radarData.source.source_name}${radarData.source.source_url ? '<br/>链接: ' + radarData.source.source_url : ''}`" raw-content>
+            <div>
+              <div class="stat-number danger">{{ shortboardCount }}</div>
+              <div class="stat-label">待改进指标 <el-icon><QuestionFilled /></el-icon></div>
+            </div>
+          </el-tooltip>
+        </div>
+        <div class="dashboard-card" v-else>
           <div class="stat-number danger">{{ shortboardCount }}</div>
           <div class="stat-label">待改进指标</div>
         </div>
