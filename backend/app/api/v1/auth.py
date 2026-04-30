@@ -152,7 +152,7 @@ def init_admin_user(db: Session):
             hashed_password=get_password_hash("admin888"),
             role="admin",
             is_active=1,
-            must_change_password=True  # 首次登录需要改密码
+            must_change_password=1  # 首次登录需要改密码
         )
         db.add(admin)
         db.commit()
@@ -186,7 +186,7 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         hashed_password=get_password_hash(request.password),
         role="user",
         is_active=0,  # 待审批
-        must_change_password=False
+        must_change_password=0
     )
     db.add(user)
     db.commit()
@@ -250,7 +250,7 @@ def change_password(request: ChangePasswordRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail="新密码至少8位，需包含大小写字母和数字")
 
     user.hashed_password = get_password_hash(request.new_password)
-    user.must_change_password = False
+    user.must_change_password = 0
     user.updated_at = datetime.utcnow()
     db.commit()
 
@@ -345,7 +345,7 @@ def admin_create_user(request: AdminCreateUserRequest, db: Session = Depends(get
         hashed_password=get_password_hash(request.password),
         role=request.role,
         is_active=1,  # 管理员创建直接激活
-        must_change_password=True
+        must_change_password=1
     )
     db.add(user)
     db.commit()

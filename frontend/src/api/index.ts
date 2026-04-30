@@ -214,13 +214,6 @@ export const authAPI = {
     apiClient.post('/auth/reset-password', null, { params: { phone, code, new_password } }),
 }
 
-  getConversations: (userId?: string, limit?: number) =>
-    apiClient.get('/dify/conversations', { params: { user_id: userId, limit } }),
-
-  getMessages: (conversationId: string, userId?: string) =>
-    apiClient.get('/dify/messages', { params: { conversation_id: conversationId, user_id: userId } })
-}
-
 // 流式调用Dify聊天API (返回fetch流对象)
 export const difyChatStream = (params: { query: string; user_id?: string; conversation_id?: string }) => {
   const searchParams = new URLSearchParams({

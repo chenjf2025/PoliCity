@@ -1,7 +1,7 @@
 <template>
   <div id="app">
-    <!-- 导航栏 -->
-    <div class="navbar">
+    <!-- 导航栏 - 非登录页显示 -->
+    <div class="navbar" v-if="!isLoginPage">
       <span class="navbar-title">城策</span>
       <span class="navbar-subtitle">城市治理决策支持平台</span>
       <div class="navbar-right">
@@ -28,7 +28,7 @@
       </div>
     </div>
 
-    <div class="main-container">
+    <div class="main-container" v-if="!isLoginPage">
       <!-- 侧边栏 -->
       <div class="sidebar">
         <el-menu
@@ -69,17 +69,25 @@
       </div>
     </div>
 
-    <!-- AI对话悬浮球 -->
-    <ChatWidget />
+    <!-- 登录页单独显示 -->
+    <div v-else class="login-page-container">
+      <router-view />
+    </div>
+
+    <!-- AI对话悬浮球 - 非登录页显示 -->
+    <ChatWidget v-if="!isLoginPage" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import ChatWidget from './components/ChatWidget.vue'
 
 const router = useRouter()
+const route = useRoute()
+
+const isLoginPage = computed(() => route.path === '/login')
 
 const currentUser = reactive({
   username: '',
@@ -196,5 +204,9 @@ body {
 
 .content > div {
   padding: 0;
+}
+
+.login-page-container {
+  height: 100vh;
 }
 </style>
