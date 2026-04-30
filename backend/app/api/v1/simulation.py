@@ -211,14 +211,17 @@ async def agent_analyze_policy_stream(
 
     # 构建流式响应
     async def generate():
+        import json as json_module
         # 先发送simulation基础数据
-        yield f"data: {json.dumps({'type': 'start', 'simulation_id': simulation_result.get('id', '')})}\n\n"
-        yield f"data: {json.dumps({'type': 'simulation', 'data': {
+        start_data = json_module.dumps({'type': 'start', 'simulation_id': simulation_result.get('id', '')})
+        yield f"data: {start_data}\n\n"
+        sim_data = json_module.dumps({'type': 'simulation', 'data': {
             'original_score': simulation_result.get('original_scores', {}).get('total_score'),
             'simulated_score': simulation_result.get('simulated_scores', {}).get('total_score'),
             'score_delta': simulation_result.get('score_delta'),
             'dimension_impacts': simulation_result.get('changed_dimensions', [])
-        }})}\n\n"
+        }})
+        yield f"data: {sim_data}\n\n"
 
         # 使用LLM生成分析报告（流式）
         prompt = AgentAnalysisPrompter.generate_policy_analysis_prompt(
