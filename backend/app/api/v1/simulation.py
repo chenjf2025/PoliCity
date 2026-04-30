@@ -169,51 +169,80 @@ async def agent_analyze_policy_stream(
     使用Server-Sent Events流式返回分析结果
     """
     from fastapi.responses import StreamingResponse
+    from app.services.agent.coordinator import PolicyAgent
+    from app.services.llm import llm_service, AgentAnalysisPrompter
     import json
+    import asyncio
 
-    coordinator = AgentCoordinator(db)
-
-    context = {
-        "region_code": request.region_code,
-        "region_name": request.region_name,
-        "report_year": request.report_year,
-        "policy_changes": [
-            {"indicator_code": p.indicator_code, "change_percent": p.change_percent}
-            for p in request.policy_changes
-        ]
-    }
-
-    # 先执行仿真获取基础数据
+    # 执行政策仿真获取基础数据
     simulator = WhatIfSimulator(db)
-    result = coordinator.analyze_policy_impact(context)
+    policy_agent = PolicyAgent(db)
 
-    # 保存分析报告到仿真记录
-    log = simulator.save_agent_analysis(
+    # 将百分比变化转换为仿真参数
+    simulation_params = []
+    for p in request.policy_changes:
+        indicator_code = p.indicator_code
+        change_percent = p.change_percent
+
+        from app.models.indicator import RawData
+        raw_data = db.query(RawData).filter(
+            RawData.indicator_code == indicator_code,
+            RawData.region_code == request.region_code,
+            RawData.report_year == request.report_year,
+            RawData.is_deleted == 0
+        ).first()
+
+        if raw_data:
+            new_value = raw_data.raw_value * (1 + change_percent / 100)
+            simulation_params.append({
+                "indicator_code": indicator_code,
+                "original_value": raw_data.raw_value,
+                "simulated_value": round(new_value, 2)
+            })
+
+    # 执行仿真
+    simulation_result = simulator.simulate(
         region_code=request.region_code,
         region_name=request.region_name,
         report_year=request.report_year,
-        analysis_result=result
+        simulation_params=simulation_params,
+        simulation_name="Agent Policy Analysis"
     )
 
     # 构建流式响应
     async def generate():
-        # 先发送simulation_id
-        yield f"data: {json.dumps({'type': 'start', 'simulation_id': str(log.id)})}\n\n"
+        # 先发送simulation基础数据
+        yield f"data: {json.dumps({'type': 'start', 'simulation_id': simulation_result.get('id', '')})}\n\n"
+        yield f"data: {json.dumps({'type': 'simulation', 'data': {
+            'original_score': simulation_result.get('original_scores', {}).get('total_score'),
+            'simulated_score': simulation_result.get('simulated_scores', {}).get('total_score'),
+            'score_delta': simulation_result.get('score_delta'),
+            'dimension_impacts': simulation_result.get('changed_dimensions', [])
+        }})}\n\n"
 
-        # 获取LLM分析并流式发送
-        llm_analysis = result.get("llm_analysis", "")
-        if llm_analysis:
-            # 逐字符或分段发送（这里直接发送完整内容，因为DeepSeek流式已在LLM服务中处理）
-            yield f"data: {json.dumps({'type': 'content', 'content': llm_analysis})}\n\n"
-        else:
-            # 如果没有LLM分析，发送结构化数据
-            insights = result.get("insights", [])
-            recommendations = result.get("recommendations", [])
+        # 使用LLM生成分析报告（流式）
+        prompt = AgentAnalysisPrompter.generate_policy_analysis_prompt(
+            region_name=request.region_name,
+            report_year=request.report_year,
+            original_score=simulation_result.get('original_scores', {}).get('total_score', 0),
+            simulated_score=simulation_result.get('simulated_scores', {}).get('total_score', 0),
+            score_delta=simulation_result.get('score_delta', 0),
+            dimension_changes=simulation_result.get('changed_dimensions', []),
+            policy_changes=[{"indicator_code": p.indicator_code, "change_percent": p.change_percent} for p in request.policy_changes]
+        )
 
-            if insights:
-                yield f"data: {json.dumps({'type': 'insights', 'data': insights})}\n\n"
-            if recommendations:
-                yield f"data: {json.dumps({'type': 'recommendations', 'data': recommendations})}\n\n"
+        system_prompt = """你是一位城市发展政策专家，擅长分析政策调整对城市发展的影响。
+请基于提供的数据，生成结构清晰、分析深入的建议报告。
+输出必须使用Markdown格式，包含标题、列表、表格等格式。"""
+
+        try:
+            messages = [{"role": "user", "content": prompt}]
+            # 使用流式调用LLM
+            for chunk in llm_service.chat_stream(messages, system_prompt=system_prompt):
+                yield f"data: {json.dumps({'type': 'content', 'content': chunk})}\n\n"
+                await asyncio.sleep(0)  # 让出控制权让其他协程可以执行
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
 
         # 发送完成信号
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
