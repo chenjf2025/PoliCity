@@ -80,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, computed, onMounted } from 'vue'
+import { reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import ChatWidget from './components/ChatWidget.vue'
 
@@ -120,6 +120,11 @@ const handleUserCommand = (command: string) => {
 }
 
 onMounted(() => {
+  loadUserInfo()
+})
+
+// 监听路由变化，重新加载用户信息
+watch(() => route.path, () => {
   loadUserInfo()
 })
 </script>
