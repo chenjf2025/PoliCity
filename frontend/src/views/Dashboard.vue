@@ -45,6 +45,7 @@
           <RadarChart
             v-if="radarData.dimensions?.length"
             :dimensions="radarData.dimensions"
+            :source-info="radarData.source"
           />
           <el-empty v-else description="暂无数据" />
         </div>

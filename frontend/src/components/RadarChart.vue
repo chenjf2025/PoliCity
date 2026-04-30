@@ -22,6 +22,10 @@ interface BenchmarkCityData {
 interface Props {
   dimensions: Dimension[]
   comparisonData?: BenchmarkCityData[]
+  sourceInfo?: {
+    source_name?: string
+    source_url?: string
+  }
 }
 
 const props = defineProps<Props>()
@@ -81,7 +85,14 @@ const initChart = () => {
       formatter: (params: any) => {
         const idx = params.dataIndex
         const dim = props.dimensions[idx]
-        return `${params.marker} ${params.name}<br/>${dim.name}: ${params.value}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`
+        let html = `${params.marker} ${params.name}<br/>${dim.name}: ${params.value}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`
+        if (params.dataIndex === 0 && props.sourceInfo) {
+          html += `<br/>来源: ${props.sourceInfo.source_name || '-'}`
+          if (props.sourceInfo.source_url) {
+            html += `<br/><a href="${props.sourceInfo.source_url}" target="_blank" style="color:#409eff">点击查看来源</a>`
+          }
+        }
+        return html
       }
     },
     legend: {
