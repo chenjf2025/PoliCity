@@ -23,6 +23,7 @@ class IndicatorResponse(BaseModel):
     data_source: Optional[str] = None
     description: Optional[str] = None
     status: int
+    is_observation: int = 0  # 0=计算指标, 1=观察指标
 
     class Config:
         from_attributes = True

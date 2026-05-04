@@ -17,7 +17,7 @@
         </el-form-item>
       </el-form>
 
-      <!-- 五维度详情 -->
+      <!-- 六维度详情 -->
       <el-row :gutter="20">
         <el-col v-for="dim in dimensionDetail" :key="dim.code" :span="8" style="margin-bottom: 20px;">
           <el-card shadow="hover">
@@ -62,7 +62,7 @@ const trendData = ref<any[]>([])
 const trendChartRef = ref<HTMLElement>()
 let trendChart: echarts.ECharts | null = null
 
-const dimensions = ['economic', 'culture', 'human', 'urban', 'governance']
+const dimensions = ['economic', 'culture', 'human', 'urban', 'governance', 'environment']
 
 const loadEvaluation = async () => {
   try {
@@ -108,7 +108,7 @@ const initTrendChart = () => {
   const option = {
     tooltip: { trigger: 'axis' },
     legend: {
-      data: ['总分', '经济', '文化', '人力', '城乡', '治理']
+      data: ['总分', '经济', '文化', '人力', '城乡', '治理', '生态']
     },
     xAxis: {
       type: 'category',
@@ -121,7 +121,8 @@ const initTrendChart = () => {
       { name: '文化', type: 'line', data: trendData.value.map(t => t.culture_score) },
       { name: '人力', type: 'line', data: trendData.value.map(t => t.human_score) },
       { name: '城乡', type: 'line', data: trendData.value.map(t => t.urban_score) },
-      { name: '治理', type: 'line', data: trendData.value.map(t => t.governance_score) }
+      { name: '治理', type: 'line', data: trendData.value.map(t => t.governance_score) },
+      { name: '生态', type: 'line', data: trendData.value.map(t => t.environment_score) }
     ]
   }
 

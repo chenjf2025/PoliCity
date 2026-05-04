@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard">
-    <!-- 顶部统计卡片 -->
+    <!-- 顶部统计卡片 - 综合发展指数 -->
     <el-row :gutter="20" style="margin-bottom: 20px;">
       <el-col :span="6">
         <div class="dashboard-card source-tooltip" v-if="radarData.source">
@@ -17,45 +17,31 @@
         </div>
       </el-col>
       <el-col :span="6">
-        <div class="dashboard-card source-tooltip" v-if="radarData.source">
-          <el-tooltip :content="`来源: ${radarData.source.source_name}${radarData.source.source_url ? '<br/>链接: ' + radarData.source.source_url : ''}`" raw-content>
-            <div>
-              <div class="stat-number success">{{ radarData.dimensions?.[0]?.score || '--' }}</div>
-              <div class="stat-label">经济活力得分 <el-icon><QuestionFilled /></el-icon></div>
-            </div>
-          </el-tooltip>
-        </div>
-        <div class="dashboard-card" v-else>
-          <div class="stat-number success">{{ radarData.dimensions?.[0]?.score || '--' }}</div>
-          <div class="stat-label">经济活力得分</div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="dashboard-card source-tooltip" v-if="radarData.source">
-          <el-tooltip :content="`来源: ${radarData.source.source_name}${radarData.source.source_url ? '<br/>链接: ' + radarData.source.source_url : ''}`" raw-content>
-            <div>
-              <div class="stat-number warning">{{ radarData.dimensions?.[1]?.score || '--' }}</div>
-              <div class="stat-label">文化繁荣得分 <el-icon><QuestionFilled /></el-icon></div>
-            </div>
-          </el-tooltip>
-        </div>
-        <div class="dashboard-card" v-else>
-          <div class="stat-number warning">{{ radarData.dimensions?.[1]?.score || '--' }}</div>
-          <div class="stat-label">文化繁荣得分</div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="dashboard-card source-tooltip" v-if="radarData.source">
-          <el-tooltip :content="`来源: ${radarData.source.source_name}${radarData.source.source_url ? '<br/>链接: ' + radarData.source.source_url : ''}`" raw-content>
-            <div>
-              <div class="stat-number danger">{{ shortboardCount }}</div>
-              <div class="stat-label">待改进指标 <el-icon><QuestionFilled /></el-icon></div>
-            </div>
-          </el-tooltip>
-        </div>
-        <div class="dashboard-card" v-else>
+        <div class="dashboard-card">
           <div class="stat-number danger">{{ shortboardCount }}</div>
           <div class="stat-label">待改进指标</div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="dashboard-card">
+          <div class="stat-number">{{ totalData.city_rank || '--' }} / {{ totalData.total_cities || '--' }}</div>
+          <div class="stat-label">城市排名</div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="dashboard-card">
+          <div class="stat-number">{{ radarData.dimensions?.length || 0 }}</div>
+          <div class="stat-label">评价维度数</div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- 六维度得分卡片 -->
+    <el-row :gutter="20" style="margin-bottom: 20px;">
+      <el-col :span="4" v-for="(dim, idx) in radarData.dimensions" :key="dim.code">
+        <div class="dashboard-card dimension-card">
+          <div class="stat-number" :class="getDimensionClass(idx)">{{ dim.score ?? '--' }}</div>
+          <div class="stat-label">{{ dim.name }} ({{ (dim.weight * 100).toFixed(0) }}%)</div>
         </div>
       </el-col>
     </el-row>
@@ -143,6 +129,11 @@ const totalData = ref<any>({})
 
 const shortboards = ref<any[]>([])
 const shortboardCount = ref(0)
+
+const getDimensionClass = (idx: number) => {
+  const classes = ['success', 'warning', 'info', 'danger', 'primary', 'secondary']
+  return classes[idx % classes.length]
+}
 
 const loadData = async () => {
   try {

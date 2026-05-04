@@ -83,10 +83,17 @@ const initChart = () => {
     tooltip: {
       trigger: 'item',
       formatter: (params: any) => {
-        const idx = params.dataIndex
-        const dim = props.dimensions[idx]
-        let html = `${params.marker} ${params.name}<br/>${dim.name}: ${params.value}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`
-        if (params.dataIndex === 0 && props.sourceInfo) {
+        // 对于雷达图，params.name 包含当前悬停的指标名称
+        const indicatorName = params.name || '';
+        // 找到当前悬停指标在 dimensions 数组中的索引
+        const dimIdx = props.dimensions.findIndex(d => d.name === indicatorName);
+        const dim = dimIdx >= 0 ? props.dimensions[dimIdx] : props.dimensions[0];
+        // 获取该series在该指标上的得分
+        const valueIdx = dimIdx >= 0 ? dimIdx : 0;
+        const score = Array.isArray(params.value) ? params.value[valueIdx] : params.value;
+
+        let html = `${params.marker} ${params.seriesName}<br/>${dim.name}: ${score}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`
+        if (props.sourceInfo) {
           html += `<br/>来源: ${props.sourceInfo.source_name || '-'}`
           if (props.sourceInfo.source_url) {
             html += `<br/><a href="${props.sourceInfo.source_url}" target="_blank" style="color:#409eff">点击查看来源</a>`
