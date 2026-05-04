@@ -54,13 +54,14 @@ def list_indicators(
 
 @router.get("/dimensions", response_model=List[DimensionSummary])
 def get_dimension_summary(db: Session = Depends(get_db)):
-    """获取五大维度汇总"""
+    """获取六大维度汇总"""
     dimensions = [
-        ("economic", "经济活力", 0.25),
+        ("economic", "经济活力", 0.20),
         ("culture", "文化繁荣", 0.15),
         ("human", "人力资源", 0.20),
         ("urban", "城乡融合", 0.20),
-        ("governance", "城市治理", 0.20)
+        ("governance", "城市治理", 0.20),
+        ("environment", "生态环境", 0.15)
     ]
 
     result = []

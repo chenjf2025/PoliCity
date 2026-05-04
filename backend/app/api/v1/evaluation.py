@@ -80,7 +80,8 @@ def get_trend(
                 "culture_score": e.culture_score,
                 "human_score": e.human_score,
                 "urban_score": e.urban_score,
-                "governance_score": e.governance_score
+                "governance_score": e.governance_score,
+                "environment_score": e.environment_score
             }
             for e in reversed(evals)
         ]
@@ -157,7 +158,8 @@ def get_dimension_detail(
         "culture": "文化繁荣",
         "human": "人力资源",
         "urban": "城乡融合",
-        "governance": "城市治理"
+        "governance": "城市治理",
+        "environment": "生态环境"
     }
 
     return {

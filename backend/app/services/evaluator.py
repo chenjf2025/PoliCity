@@ -11,13 +11,14 @@ from app.services.normalizer import Normalizer
 class EvaluationEngine:
     """城市发展评价引擎"""
 
-    # 五大维度权重配置
+    # 六大维度权重配置
     DIMENSION_WEIGHTS = {
-        "economic": 0.25,    # 经济活力与结构优化
+        "economic": 0.20,    # 经济活力与结构优化
         "culture": 0.15,    # 文化繁荣与软实力
         "human": 0.20,      # 人力资源与人才发展
         "urban": 0.20,      # 城乡融合与均衡发展
-        "governance": 0.20  # 城市治理能力与韧性
+        "governance": 0.20, # 城市治理能力与韧性
+        "environment": 0.15  # 生态环境与绿色低碳
     }
 
     # 维度编码前缀映射
@@ -26,7 +27,8 @@ class EvaluationEngine:
         "C": "culture",
         "H": "human",
         "U": "urban",
-        "G": "governance"
+        "G": "governance",
+        "EV": "environment"
     }
 
     def __init__(self, db: Session):
@@ -122,7 +124,8 @@ class EvaluationEngine:
             "culture": "文化繁荣",
             "human": "人力资源",
             "urban": "城乡融合",
-            "governance": "城市治理"
+            "governance": "城市治理",
+            "environment": "生态环境"
         }
 
         indicators = self.db.query(Indicator).filter(
@@ -195,6 +198,7 @@ class EvaluationEngine:
             "human_score": dimension_scores.get("human"),
             "urban_score": dimension_scores.get("urban"),
             "governance_score": dimension_scores.get("governance"),
+            "environment_score": dimension_scores.get("environment"),
             "total_score": dimension_scores.get("total")
         }
 
@@ -230,11 +234,12 @@ class EvaluationEngine:
 
         return {
             "dimensions": [
-                {"name": "经济活力", "code": "economic", "score": scores.get("economic_score"), "weight": 0.25},
+                {"name": "经济活力", "code": "economic", "score": scores.get("economic_score"), "weight": 0.20},
                 {"name": "文化繁荣", "code": "culture", "score": scores.get("culture_score"), "weight": 0.15},
                 {"name": "人力资源", "code": "human", "score": scores.get("human_score"), "weight": 0.20},
                 {"name": "城乡融合", "code": "urban", "score": scores.get("urban_score"), "weight": 0.20},
-                {"name": "城市治理", "code": "governance", "score": scores.get("governance_score"), "weight": 0.20}
+                {"name": "城市治理", "code": "governance", "score": scores.get("governance_score"), "weight": 0.20},
+                {"name": "生态环境", "code": "environment", "score": scores.get("environment_score"), "weight": 0.15}
             ],
             "total_score": scores.get("total_score"),
             "source": source_info

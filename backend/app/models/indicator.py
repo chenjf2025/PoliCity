@@ -18,7 +18,7 @@ class Indicator(Base):
     __tablename__ = "dict_indicator"
 
     indicator_code = Column(String(10), primary_key=True)
-    dimension = Column(String(20), nullable=False)  # economic/culture/human/urban/governance
+    dimension = Column(String(20), nullable=False)  # economic/culture/human/urban/governance/environment
     dimension_cn = Column(String(20), nullable=False)
     indicator_name = Column(String(100), nullable=False)
     indicator_name_en = Column(String(100))
@@ -28,6 +28,7 @@ class Indicator(Base):
     data_source = Column(String(100))
     description = Column(Text)
     status = Column(Integer, default=1)
+    is_observation = Column(Integer, default=0)  # 0=计算指标, 1=观察指标(不参与权重计算)
     version = Column(String(20), default="1.0")
     created_at = Column(DateTime, default=now_shanghai)
     updated_at = Column(DateTime, default=now_shanghai, onupdate=now_shanghai)
@@ -95,12 +96,13 @@ class Evaluation(Base):
     report_year = Column(Integer, nullable=False)
     report_month = Column(Integer)
 
-    # 五大维度得分
+    # 六大维度得分
     economic_score = Column(Float)
     culture_score = Column(Float)
     human_score = Column(Float)
     urban_score = Column(Float)
     governance_score = Column(Float)
+    environment_score = Column(Float)
 
     # 综合得分
     total_score = Column(Float)

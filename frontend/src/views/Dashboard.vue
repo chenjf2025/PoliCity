@@ -65,7 +65,7 @@
       <!-- 雷达图 -->
       <el-col :span="12">
         <div class="dashboard-card">
-          <div class="card-title">五维发展雷达图</div>
+          <div class="card-title">六维发展雷达图</div>
           <RadarChart
             v-if="radarData.dimensions?.length"
             :dimensions="radarData.dimensions"

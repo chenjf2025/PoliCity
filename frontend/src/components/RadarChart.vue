@@ -76,7 +76,7 @@ const initChart = () => {
 
   const option = {
     title: {
-      text: '五维评价雷达图',
+      text: '六维评价雷达图',
       left: 'center',
       top: 10
     },
