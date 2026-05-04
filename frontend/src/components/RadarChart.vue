@@ -81,26 +81,35 @@ const initChart = () => {
       top: 10
     },
     tooltip: {
-      trigger: 'item',
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
       formatter: (params: any) => {
-        // ECharts radar: dataIndex 是指标索引，name 是指标名称
-        const dimIdx = typeof params.dataIndex === 'number' ? params.dataIndex :
-          props.dimensions.findIndex(d => d.name === params.name);
+        // params[0] 包含当前悬停的指标信息
+        const param = params[0];
+        if (!param) return '';
+
+        // radar axis tooltip: name 是指标名称, dataIndex 是指标索引
+        const dimIdx = param.dataIndex;
         const dim = dimIdx >= 0 && dimIdx < props.dimensions.length ? props.dimensions[dimIdx] : props.dimensions[0];
 
-        // 获取分数 - radar tooltip 时 params.value 是单个数值
-        const score = typeof params.value === 'number' ? params.value :
-          (Array.isArray(params.value) ? params.value[0] : 0);
+        // 构建所有 series 在该指标上的得分
+        let html = `<strong>${dim.name}</strong><br/>`;
+        params.forEach((p: any) => {
+          const score = typeof p.value === 'number' ? p.value : (Array.isArray(p.value) ? p.value[0] : 0);
+          html += `${p.marker} ${p.seriesName}: ${score}分<br/>`;
+        });
 
-        let html = `${params.marker} ${params.seriesName}<br/>${dim.name}: ${score}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`
-        // 只在第一个 series 时显示来源
-        if (series.findIndex(s => s.name === params.seriesName) === 0 && props.sourceInfo) {
-          html += `<br/>来源: ${props.sourceInfo.source_name || '-'}`
+        // 显示权重和来源
+        html += `<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`;
+        if (props.sourceInfo) {
+          html += `<br/>来源: ${props.sourceInfo.source_name || '-'}`;
           if (props.sourceInfo.source_url) {
-            html += `<br/><a href="${props.sourceInfo.source_url}" target="_blank" style="color:#409eff">点击查看来源</a>`
+            html += `<br/><a href="${props.sourceInfo.source_url}" target="_blank" style="color:#409eff">点击查看来源</a>`;
           }
         }
-        return html
+        return html;
       }
     },
     legend: {
