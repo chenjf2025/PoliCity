@@ -83,17 +83,18 @@ const initChart = () => {
     tooltip: {
       trigger: 'item',
       formatter: (params: any) => {
-        // 对于雷达图，params.name 包含当前悬停的指标名称
-        const indicatorName = params.name || '';
-        // 找到当前悬停指标在 dimensions 数组中的索引
-        const dimIdx = props.dimensions.findIndex(d => d.name === indicatorName);
-        const dim = dimIdx >= 0 ? props.dimensions[dimIdx] : props.dimensions[0];
-        // 获取该series在该指标上的得分
-        const valueIdx = dimIdx >= 0 ? dimIdx : 0;
-        const score = Array.isArray(params.value) ? params.value[valueIdx] : params.value;
+        // ECharts radar: dataIndex 是指标索引，name 是指标名称
+        const dimIdx = typeof params.dataIndex === 'number' ? params.dataIndex :
+          props.dimensions.findIndex(d => d.name === params.name);
+        const dim = dimIdx >= 0 && dimIdx < props.dimensions.length ? props.dimensions[dimIdx] : props.dimensions[0];
+
+        // 获取分数 - radar tooltip 时 params.value 是单个数值
+        const score = typeof params.value === 'number' ? params.value :
+          (Array.isArray(params.value) ? params.value[0] : 0);
 
         let html = `${params.marker} ${params.seriesName}<br/>${dim.name}: ${score}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`
-        if (props.sourceInfo) {
+        // 只在第一个 series 时显示来源
+        if (series.findIndex(s => s.name === params.seriesName) === 0 && props.sourceInfo) {
           html += `<br/>来源: ${props.sourceInfo.source_name || '-'}`
           if (props.sourceInfo.source_url) {
             html += `<br/><a href="${props.sourceInfo.source_url}" target="_blank" style="color:#409eff">点击查看来源</a>`
