@@ -96,8 +96,8 @@ const initChart = () => {
         const rect = container.getBoundingClientRect();
         const cx = rect.width * 0.5;
         const cy = rect.height * 0.55;
-        const dx = params.event?.offsetX - cx;
-        const dy = params.event?.offsetY - cy;
+        const dx = (params.event?.offsetX ?? cx) - cx;
+        const dy = (params.event?.offsetY ?? cy) - cy;
 
         // 计算角度，atan2给出数学标准角度（0°在右边，逆时针）
         // 转换为雷达图角度：0°在顶部，顺时针增加
@@ -109,9 +109,10 @@ const initChart = () => {
         const dimIdx = Math.floor((angle + 30) / 60) % dimCount;
 
         const dim = props.dimensions[dimIdx];
-        const score = values[dimIdx] || 0;
+        if (!dim) return '';
+        const score = values[dimIdx] ?? 0;
 
-        let html = `${params.marker} ${params.seriesName}<br/><strong>${dim.name}</strong>: ${score}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`;
+        let html = `${params.marker} ${params.name || params.seriesName || ''}<br/><strong>${dim.name}</strong>: ${score}分<br/>(权重: ${(dim.weight * 100).toFixed(0)}%)`;
         if (props.sourceInfo) {
           html += `<br/>来源: ${props.sourceInfo.source_name || '-'}`;
           if (props.sourceInfo.source_url) {
